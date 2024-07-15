@@ -69,17 +69,23 @@ def handle_message(message):
         # Generate an SVG image for the starting message
         svg_content = f"""
         <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
-            <rect width="300" height="200" style="fill:blue"/>
-            <text x="10" y="20" style="fill:white;font-size:20px;">
-                Starting action...
+            <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:rgb(255,140,0);stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:rgb(255,69,0);stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <rect width="300" height="200" fill="url(#grad1)"/>
+            <text x="10" y="40" fill="white" style="font-size:24px; font-weight:bold;">
+                🚀 Starting Action...
             </text>
-            <text x="10" y="50" style="fill:white;font-size:16px;">
+            <text x="10" y="80" fill="white" style="font-size:18px;">
                 IP: {ip}
             </text>
-            <text x="10" y="80" style="fill:white;font-size:16px;">
+            <text x="10" y="110" fill="white" style="font-size:18px;">
                 Port: {port}
             </text>
-            <text x="10" y="110" style="fill:white;font-size:16px;">
+            <text x="10" y="140" fill="white" style="font-size:18px;">
                 Duration: {duration} seconds
             </text>
         </svg>
@@ -94,7 +100,7 @@ def handle_message(message):
         bot.send_photo(message.chat.id, image_file, caption="🚀 *Action started!*", parse_mode='Markdown')
 
         # Run the action command
-        full_command = f"./action {ip} {port} {duration} 800"
+        full_command = f"./action {ip} {port} {duration} 400"
         process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         processes[process.pid] = process
         
@@ -121,20 +127,26 @@ def check_process_status(message, process, ip, port, duration):
     # Generate an SVG image for the success message
     svg_content = f"""
     <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="300" height="200" style="fill:green"/>
-        <text x="10" y="20" style="fill:white;font-size:20px;">
-            Action completed!
+        <defs>
+            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:rgb(34,193,195);stop-opacity:1" />
+                <stop offset="100%" style="stop-color:rgb(253,187,45);stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <rect width="300" height="200" fill="url(#grad2)"/>
+        <text x="10" y="40" fill="white" style="font-size:24px; font-weight:bold;">
+            ✅ Action Completed!
         </text>
-        <text x="10" y="50" style="fill:white;font-size:16px;">
+        <text x="10" y="80" fill="white" style="font-size:18px;">
             Target IP: {ip}
         </text>
-        <text x="10" y="80" style="fill:white;font-size:16px;">
+        <text x="10" y="110" fill="white" style="font-size:18px;">
             Port: {port}
         </text>
-        <text x="10" y="110" style="fill:white;font-size:16px;">
+        <text x="10" y="140" fill="white" style="font-size:18px;">
             Duration: {duration} seconds
         </text>
-        <text x="10" y="140" style="fill:white;font-size:16px;">
+        <text x="10" y="170" fill="white" style="font-size:14px;">
             _By Ibraheem_
         </text>
     </svg>
