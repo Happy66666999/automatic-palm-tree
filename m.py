@@ -6,6 +6,10 @@ from threading import Timer
 import time
 from io import BytesIO
 import cairosvg
+import logging
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initialize the bot with the token from environment variable
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -48,6 +52,22 @@ def user_info(message):
     )
     bot.reply_to(message, user_info_text, parse_mode='Markdown')
 
+@bot.message_handler(commands=['list'])
+def list_actions(message):
+    if not processes:
+        bot.reply_to(message, 'No active actions.', parse_mode='Markdown')
+        return
+
+    actions_list = "🔧 *Active Actions:*\n\n"
+    for pid, process_info in processes.items():
+        actions_list += (
+            f"🆔 *Process ID:* {pid}\n"
+            f"🌐 *IP:* {process_info['ip']}\n"
+            f"🔢 *Port:* {process_info['port']}\n"
+            f"⏳ *Duration:* {process_info['duration']} seconds\n\n"
+        )
+    bot.reply_to(message, actions_list, parse_mode='Markdown')
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
@@ -71,42 +91,45 @@ def handle_message(message):
         <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:rgb(255,140,0);stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:rgb(255,69,0);stop-opacity:1" />
+                    <stop offset="0%" style="stop-color:#0078D7;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#00A4EF;stop-opacity:1" />
                 </linearGradient>
+                <style>
+                    .title {{ font: bold 24px sans-serif; fill: white; }}
+                    .text {{ font: 18px sans-serif; fill: white; }}
+                </style>
             </defs>
             <rect width="300" height="200" fill="url(#grad1)"/>
-            <text x="10" y="40" fill="white" style="font-size:24px; font-weight:bold;">
-                🚀 Starting Action...
-            </text>
-            <text x="10" y="80" fill="white" style="font-size:18px;">
-                IP: {ip}
-            </text>
-            <text x="10" y="110" fill="white" style="font-size:18px;">
-                Port: {port}
-            </text>
-            <text x="10" y="140" fill="white" style="font-size:18px;">
-                Duration: {duration} seconds
-            </text>
+            <text x="10" y="40" class="title">🚀 Starting Action...</text>
+            <text x="10" y="80" class="text">IP: {ip}</text>
+            <text x="10" y="110" class="text">Port: {port}</text>
+            <text x="10" y="140" class="text">Duration: {duration} seconds</text>
         </svg>
         """
 
-        # Convert the SVG content to PNG
-        png_image = cairosvg.svg2png(bytestring=svg_content)
-        image_file = BytesIO(png_image)
-        image_file.seek(0)
+        try:
+            # Convert the SVG content to PNG
+            png_image = cairosvg.svg2png(bytestring=svg_content)
+            image_file = BytesIO(png_image)
+            image_file.seek(0)
 
-        # Send the starting message as an image
-        bot.send_photo(message.chat.id, image_file, caption="🚀 *Action started!*", parse_mode='Markdown')
+            # Send the starting message as an image
+            bot.send_photo(message.chat.id, image_file, caption="🚀 *Action started!*", parse_mode='Markdown')
 
-        # Run the action command
-        full_command = f"./action {ip} {port} {duration} 400"
-        process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        processes[process.pid] = process
-        
-        # Schedule a timer to check process status
-        timer = Timer(int(duration), check_process_status, [message, process, ip, port, duration])
-        timer.start()
+            # Run the action command
+            full_command = f"./action {ip} {port} {duration} 400"
+            process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            processes[process.pid] = {'process': process, 'ip': ip, 'port': port, 'duration': duration}
+            
+            # Schedule a timer to check process status
+            timer = Timer(int(duration), check_process_status, [message, process, ip, port, duration])
+            timer.start()
+
+            logging.info(f"Started action: IP={ip}, Port={port}, Duration={duration}")
+
+        except Exception as e:
+            logging.error(f"Error starting action: {e}")
+            bot.reply_to(message, f"❌ *Error starting action:* {str(e)}", parse_mode='Markdown')
     else:
         bot.reply_to(message, (
             "❌ *Invalid format.* Please use the format:\n"
@@ -114,58 +137,62 @@ def handle_message(message):
         ), parse_mode='Markdown')
 
 def check_process_status(message, process, ip, port, duration):
-    # Check if the process has completed
-    return_code = process.poll()
-    if return_code is None:
-        # Process is still running, terminate it
-        process.terminate()
-        process.wait()
-    
-    # Remove process from tracking dictionary
-    processes.pop(process.pid, None)
+    try:
+        # Check if the process has completed
+        return_code = process.poll()
+        if return_code is None:
+            # Process is still running, terminate it
+            process.terminate()
+            process.wait()
+        
+        # Remove process from tracking dictionary
+        processes.pop(process.pid, None)
 
-    # Generate an SVG image for the success message
-    svg_content = f"""
-    <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:rgb(34,193,195);stop-opacity:1" />
-                <stop offset="100%" style="stop-color:rgb(253,187,45);stop-opacity:1" />
-            </linearGradient>
-        </defs>
-        <rect width="300" height="200" fill="url(#grad2)"/>
-        <text x="10" y="40" fill="white" style="font-size:24px; font-weight:bold;">
-            ✅ Action Completed!
-        </text>
-        <text x="10" y="80" fill="white" style="font-size:18px;">
-            Target IP: {ip}
-        </text>
-        <text x="10" y="110" fill="white" style="font-size:18px;">
-            Port: {port}
-        </text>
-        <text x="10" y="140" fill="white" style="font-size:18px;">
-            Duration: {duration} seconds
-        </text>
-        <text x="10" y="170" fill="white" style="font-size:14px;">
-            By Ibraheem
-        </text>
-    </svg>
-    """
+        # Generate an SVG image for the success message
+        svg_content = f"""
+        <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#34C759;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#32D74B;stop-opacity:1" />
+                </linearGradient>
+                <style>
+                    .title {{ font: bold 24px sans-serif; fill: white; }}
+                    .text {{ font: 18px sans-serif; fill: white; }}
+                    .footer {{ font: 14px sans-serif; fill: white; }}
+                </style>
+            </defs>
+            <rect width="300" height="200" fill="url(#grad2)"/>
+            <text x="10" y="40" class="title">✅ Action Complete!</text>
+            <text x="10" y="80" class="text">IP: {ip}</text>
+            <text x="10" y="110" class="text">Port: {port}</text>
+            <text x="10" y="140" class="text">Duration: {duration} seconds</text>
+            <text x="10" y="170" class="footer">Check log for details.</text>
+        </svg>
+        """
+        
+        png_image = cairosvg.svg2png(bytestring=svg_content)
+        image_file = BytesIO(png_image)
+        image_file.seek(0)
 
-    # Convert the SVG content to PNG
-    png_image = cairosvg.svg2png(bytestring=svg_content)
-    image_file = BytesIO(png_image)
-    image_file.seek(0)
+        bot.send_photo(message.chat.id, image_file, caption="✅ *Action complete!*", parse_mode='Markdown')
 
-    # Send the success message as an image
-    bot.send_photo(message.chat.id, image_file, caption="✅ *Action completed successfully!*", parse_mode='Markdown')
+        logging.info(f"Action complete: IP={ip}, Port={port}, Duration={duration}")
+
+    except Exception as e:
+        logging.error(f"Error checking process status: {e}")
+        bot.reply_to(message, f"❌ *Error completing action:* {str(e)}", parse_mode='Markdown')
 
 def stop_all_actions(message):
-    for pid, process in list(processes.items()):
-        process.terminate()
-        process.wait()
-        processes.pop(pid, None)
-    bot.reply_to(message, '🛑 *All actions have been stopped.*', parse_mode='Markdown')
+    for pid, process_info in processes.items():
+        try:
+            process_info['process'].terminate()
+            process_info['process'].wait()
+        except Exception as e:
+            logging.error(f"Error stopping process {pid}: {e}")
+    
+    processes.clear()
+    bot.reply_to(message, "🛑 *All actions have been stopped.*", parse_mode='Markdown')
 
-# Start polling
-bot.polling()
+# Polling to keep the bot running
+bot.polling(none_stop=True)
