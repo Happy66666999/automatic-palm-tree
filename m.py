@@ -4,6 +4,7 @@ import subprocess
 import telebot
 from threading import Timer
 import time
+import base64
 
 # Initialize the bot with the token from environment variable
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -20,6 +21,17 @@ pattern = re.compile(r"(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)\s(\d{1,5})\s(\d+
 
 # Dictionary to keep track of subprocesses and timers
 processes = {}
+
+# Function to generate SVG content and save it as a file
+def generate_svg(content, color, fill, filename):
+    svg_content = f'''
+    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="40" stroke="{color}" stroke-width="4" fill="{fill}" />
+        <text x="50%" y="50%" text-anchor="middle" fill="black" font-size="20px" font-family="Arial" dy=".3em">{content}</text>
+    </svg>
+    '''
+    with open(filename, 'w') as file:
+        file.write(svg_content)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -63,6 +75,7 @@ def handle_message(message):
     match = pattern.match(text)
     if match:
         ip, port, duration = match.groups()
+        
         bot.reply_to(message, (
             f"🚀 *Starting action...*\n\n"
             f"📡 *IP:* `{ip}`\n"
@@ -71,7 +84,7 @@ def handle_message(message):
         ), parse_mode='Markdown')
         
         # Run the action command
-        full_command = f"./action {ip} {port} {duration} 800"
+        full_command = f"./action {ip} {port} {duration} 400"
         process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         processes[process.pid] = process
         
@@ -95,14 +108,19 @@ def check_process_status(message, process, ip, port, duration):
     # Remove process from tracking dictionary
     processes.pop(process.pid, None)
 
+    # Generate SVG for action completed
+    svg_filename = 'success.svg'
+    generate_svg('Success', 'blue', 'lightblue', svg_filename)
+
     # Action succeeded
-    bot.reply_to(message, (
-        f"✅ *Action completed successfully!*\n\n"
-        f"📡 *Target IP:* `{ip}`\n"
-        f"🔌 *Port:* `{port}`\n"
-        f"⏱ *Duration:* `{duration} seconds`\n\n"
-        f"_By Ibraheem_"
-    ), parse_mode='Markdown')
+    with open(svg_filename, 'rb') as svg_file:
+        bot.send_photo(message.chat.id, svg_file, caption=(
+            f"✅ *Action completed successfully!*\n\n"
+            f"📡 *Target IP:* `{ip}`\n"
+            f"🔌 *Port:* `{port}`\n"
+            f"⏱ *Duration:* `{duration} seconds`\n\n"
+            f"_By Ibraheem_"
+        ), parse_mode='Markdown')
 
 def stop_all_actions(message):
     for pid, process in list(processes.items()):
