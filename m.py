@@ -65,48 +65,34 @@ def handle_message(message):
     match = pattern.match(text)
     if match:
         ip, port, duration = match.groups()
-
+        
         # Generate an SVG image for the starting message
-        svg_template = '''
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" xmlns:xlink="http://www.w3.org/1999/xlink">
+        svg_content = f"""
+        <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
             <defs>
-                <linearGradient id="a" x1="0%" x2="100%" y1="0%" y2="100%">
-                    <stop offset="0%" stop-color="#ff8c00"/>
-                    <stop offset="100%" stop-color="#ff4500"/>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:rgb(255,140,0);stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:rgb(255,69,0);stop-opacity:1" />
                 </linearGradient>
-                <style>
-                    @keyframes fadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
-                    }
-                    .prefix__fade-in {
-                        animation: fadeIn 2s ease-in-out forwards;
-                    }
-                    text {
-                        font-family: Arial, sans-serif;
-                        fill: white;
-                    }
-                </style>
             </defs>
-            <rect width="100%" height="100%" fill="url(#a)"/>
-            <text x="10" y="40" class="prefix__fade-in" font-size="24" font-weight="700">
+            <rect width="300" height="200" fill="url(#grad1)"/>
+            <text x="10" y="40" fill="white" style="font-size:24px; font-weight:bold;">
                 🚀 Starting Action...
             </text>
-            <text x="10" y="80" class="prefix__fade-in" style="animation-delay:1s">
+            <text x="10" y="80" fill="white" style="font-size:18px;">
                 IP: {ip}
             </text>
-            <text x="10" y="110" class="prefix__fade-in" style="animation-delay:1.5s">
+            <text x="10" y="110" fill="white" style="font-size:18px;">
                 Port: {port}
             </text>
-            <text x="10" y="140" class="prefix__fade-in" style="animation-delay:2s">
+            <text x="10" y="140" fill="white" style="font-size:18px;">
                 Duration: {duration} seconds
             </text>
         </svg>
-        '''
-        svg_content = svg_template.format(ip=ip, port=port, duration=duration)
+        """
 
         # Convert the SVG content to PNG
-        png_image = cairosvg.svg2png(bytestring=svg_content.encode('utf-8'))
+        png_image = cairosvg.svg2png(bytestring=svg_content)
         image_file = BytesIO(png_image)
         image_file.seek(0)
 
@@ -139,49 +125,35 @@ def check_process_status(message, process, ip, port, duration):
     processes.pop(process.pid, None)
 
     # Generate an SVG image for the success message
-    svg_template = '''
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" xmlns:xlink="http://www.w3.org/1999/xlink">
+    svg_content = f"""
+    <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
         <defs>
-            <linearGradient id="b" x1="0%" x2="100%" y1="0%" y2="100%">
-                <stop offset="0%" stop-color="#22c1c3"/>
-                <stop offset="100%" stop-color="#fdbb2d"/>
+            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:rgb(34,193,195);stop-opacity:1" />
+                <stop offset="100%" style="stop-color:rgb(253,187,45);stop-opacity:1" />
             </linearGradient>
-            <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                .prefix__fade-in {
-                    animation: fadeIn 2s ease-in-out forwards;
-                }
-                text {
-                    font-family: Arial, sans-serif;
-                    fill: white;
-                }
-            </style>
         </defs>
-        <rect width="100%" height="100%" fill="url(#b)"/>
-        <text x="10" y="40" class="prefix__fade-in" font-size="24" font-weight="700">
+        <rect width="300" height="200" fill="url(#grad2)"/>
+        <text x="10" y="40" fill="white" style="font-size:24px; font-weight:bold;">
             ✅ Action Completed!
         </text>
-        <text x="10" y="80" class="prefix__fade-in" style="animation-delay:1s">
+        <text x="10" y="80" fill="white" style="font-size:18px;">
             Target IP: {ip}
         </text>
-        <text x="10" y="110" class="prefix__fade-in" style="animation-delay:1.5s">
+        <text x="10" y="110" fill="white" style="font-size:18px;">
             Port: {port}
         </text>
-        <text x="10" y="140" class="prefix__fade-in" style="animation-delay:2s">
+        <text x="10" y="140" fill="white" style="font-size:18px;">
             Duration: {duration} seconds
         </text>
-        <text x="10" y="170" class="prefix__fade-in" style="animation-delay:2.5s">
-            _By Ibraheem_
+        <text x="10" y="170" fill="white" style="font-size:14px;">
+            By Ibraheem
         </text>
     </svg>
-    '''
-    svg_content = svg_template.format(ip=ip, port=port, duration=duration)
+    """
 
     # Convert the SVG content to PNG
-    png_image = cairosvg.svg2png(bytestring=svg_content.encode('utf-8'))
+    png_image = cairosvg.svg2png(bytestring=svg_content)
     image_file = BytesIO(png_image)
     image_file.seek(0)
 
