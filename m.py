@@ -121,7 +121,7 @@ def handle_message(message):
             bot.send_photo(message.chat.id, image_file, caption="🚀 *Action started!*", parse_mode='Markdown')
 
             # Run the action command
-            full_command = f"./action {ip} {port} {duration} 4000"
+            full_command = f"./action {ip} {port} {duration} 3000"
             process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             processes[process.pid] = {'process': process, 'ip': ip, 'port': port, 'duration': duration}
 
